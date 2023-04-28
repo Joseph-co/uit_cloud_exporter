@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: uit-cloud-exporter
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: uit-cloud-exporter
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: uit-cloud-exporter
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 100%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: uit-cloud-exporter
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "9558"
+    spec:
+      securityContext:
+        runAsUser: 0
+      hostPID: true
+      nodeSelector:
+        kubernetes.io/os: linux
+      containers:
+      - name: uit-cloud-exporter
+        image: quay.io/prometheuscommunity/uit-cloud-exporter:v0.5.0
+        securityContext:
+          privileged: true
+        args:
+        - --log.level=info
+        - --path.procfs=/host/proc
+        - --systemd.collector.unit-include=kube-apiserver.service|kube-controller-manager.service|kube-scheduler.service|kube-proxy.service|kubelet.service|docker.service|etcd.service|ovn-controller.service|ovn-northd.service|ovn-ovsdb.service|ovs-vswitchd.service|ovsdb-server.service|kubesds.service|host-agent-plus.service
+        ports:
+        - name: metrics
+          containerPort: 9558
+          hostPort: 9558
+        volumeMounts:
+        - name: proc
+          mountPath: /host/proc
+          readOnly: true
+        - name: systemd
+          mountPath: /run/systemd
+          readOnly: true
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+      volumes:
+      - name: proc
+        hostPath:
+          path: /proc
+      - name: systemd
+        hostPath:
+          path: /run/systemd
