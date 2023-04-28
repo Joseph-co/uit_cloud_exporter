@@ -10,12 +10,14 @@ import (
 	syst "uit_cloud_exporter/syst"
 )
 
-const namespace = "uit_container"
+const (
+	namespace = "uit"
+)
 
 var (
 	val int
-	vip string
-	netdev string
+	vip string = "127.0.0.1"
+	netdev string = "en0"
 )
 
 type NodeInfo struct {
@@ -45,17 +47,17 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 }
 
 func NewExporter() *Exporter {
-	hostname, _ := docker.GetHostName()
+	hostname, _ := syst.GetHostName()
 	nodeinfo := NodeInfo{
 		HostName: hostname,
 		IPAddr:   "127.0.0.1",
-		VIPAddr: "127.0.0.1",
+		VIPAddr: vip,
 	}
 	return &Exporter{
 		NodeInfo: nodeinfo,
 		metrix: map[string]*prometheus.Desc{
 			"container_status" : prometheus.NewDesc(
-				prometheus.BuildFQName(namespace, "", "exporter_up"),
+				prometheus.BuildFQName(namespace, "", "container_up"),
 				"Was the last Mirth query successful.",
 				[]string{"hostname","host_ip","container"}, nil,
 			),
@@ -63,6 +65,11 @@ func NewExporter() *Exporter {
 				prometheus.BuildFQName(namespace, "", "vip_up"),
 				"Was the last Mirth query successful.",
 				[]string{"hostname","host_ip","vip"}, nil,
+			),
+			"net_ifaces" : prometheus.NewDesc(
+				prometheus.BuildFQName(namespace, "", "iface_up"),
+				"Was the last Mirth query successful.",
+				[]string{"hostname","iface_name","iface_ip"}, nil,
 			),
 			"ha_proxy" : prometheus.NewDesc(
 				prometheus.BuildFQName(namespace, "", "ha_proxy_up"),
@@ -101,15 +108,59 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	}
 	if  syst.VipCheck(vip) {
 		ch <- prometheus.MustNewConstMetric(
-			e.metrix["container_status"], prometheus.GaugeValue, 1, nodeInfoVip...,
+			e.metrix["keepalive_vip"], prometheus.GaugeValue, 1, nodeInfoVip...,
 		)
 	}else {
 		ch <- prometheus.MustNewConstMetric(
-			e.metrix["container_status"], prometheus.GaugeValue, 0, nodeInfoVip...,
+			e.metrix["keepalive_vip"], prometheus.GaugeValue, 0, nodeInfoVip...,
 		)
 	}
+	ipMap,ifCheck := syst.GetIpMap()
+	//for iname := range ifCheck {
+	//	var iface_ip string
+	//	miname,ok := ipMap[iname]
+	//		if ok {
+	//			iface_ip = miname[0]
+	//		}else {
+	//			iface_ip = "none"
+	//		}
+	//	nodeInfoNet := []string{
+	//		e.HostName,
+	//		iname,
+	//		iface_ip,
+	//	}
+	//	if ifCheck[iname] {
+	//		ch <- prometheus.MustNewConstMetric(
+	//			e.metrix["net_ifaces"], prometheus.GaugeValue, 1, nodeInfoNet...,
+	//		)
+	//	}else{
+	//		ch <- prometheus.MustNewConstMetric(
+	//			e.metrix["net_ifaces"], prometheus.GaugeValue, 0, nodeInfoNet...,
+	//		)
+	//	}
+	//}
+	for iname := range ipMap {
+		ic, ok := ifCheck[iname]
+		if ok {
+			for _, ip := range ipMap[iname] {
+				nodeInfoNet := []string{
+					e.HostName,
+					iname,
+					ip,
+				}
+				if ic {
+					ch <- prometheus.MustNewConstMetric(
+						e.metrix["net_ifaces"], prometheus.GaugeValue, 1, nodeInfoNet...,
+					)
+				} else {
+					ch <- prometheus.MustNewConstMetric(
+						e.metrix["net_ifaces"], prometheus.GaugeValue, 0, nodeInfoNet...,
+					)
+				}
+			}
+		}
+	}
 }
-
 
 func main() {
 	exporter := NewExporter()
