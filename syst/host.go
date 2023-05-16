@@ -1,22 +1,22 @@
 package syst
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"os"
+	"os/exec"
 	"strings"
 )
 
 func VipCheck(vip string) bool {
-	interface_list, err := net.Interfaces()
+	interfaceList, err := net.Interfaces()
 	if err != nil {
 		log.Fatal(err)
 	}
 	var byName *net.Interface
 	var addrList []net.Addr
 	var oneAddrs []string
-	for _, i := range interface_list {
+	for _, i := range interfaceList {
 		byName, err = net.InterfaceByName(i.Name)
 		if err != nil {
 			log.Fatal(err)
@@ -34,7 +34,6 @@ func VipCheck(vip string) bool {
 	}
 	return false
 }
-
 func GetIpMap() (ipMap map[string][]string,ifCheck map[string]bool) {
 	ipmap := make(map[string][]string)
 	ifcheck := make(map[string]bool)
@@ -45,10 +44,8 @@ func GetIpMap() (ipMap map[string][]string,ifCheck map[string]bool) {
 	for _, iface := range ifaces {
 
 		if iface.Flags&net.FlagUp != 0 {
-			fmt.Printf("Interface %v is up\n", iface.Name)
 			ifcheck[iface.Name] = true
 		} else {
-			fmt.Printf("Interface %v is down\n", iface.Name)
 			ifcheck[iface.Name] = false
 		}
 		addrs, err := iface.Addrs()
@@ -57,12 +54,53 @@ func GetIpMap() (ipMap map[string][]string,ifCheck map[string]bool) {
 		}
 		for _, addr := range addrs {
 			ip := strings.SplitN(addr.String(), "/", 2)
-			ipmap[iface.Name] = append(ipMap[iface.Name], ip[0])
+			ipmap[iface.Name] = append(ipmap[iface.Name], ip[0])
 		}
 	}
 	return ipmap, ifcheck
 }
 
+func GetSpecIface()[]string {
+	ifaces, err := net.Interfaces()
+	Iface := make([]string,0,len(ifaces))
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, iface := range ifaces {
+		if strings.HasPrefix(iface.Name, "net") || strings.HasPrefix(iface.Name, "eth") {
+			Iface = append(Iface,iface.Name)
+		}
+	}
+
+	path,err :=  PathExists("/proc/net/bonding")
+	if err != nil {
+		log.Fatal(err)
+	}
+	if path {
+		cmd := exec.Command("ls", "/proc/net/bonding")
+		output, err := cmd.Output()
+		if err != nil {
+			log.Println("Error executing command:", err)
+		}
+		for _,i := range strings.Split(string(output), "\n"){
+			Iface = append(Iface,i)
+		}
+	}else {
+		return Iface
+	}
+	return Iface
+}
+
+func PathExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
+}
 
 
 func GetHostName() (string, error) {
@@ -73,6 +111,44 @@ func GetHostName() (string, error) {
 	}
 	return hostName, nil
 }
+
+
+func GetKeepAlive() bool {
+	cmd := exec.Command("ps", "-ef")
+	output, err := cmd.Output()
+	if err != nil {
+		log.Println("Error executing command:", err)
+		return false
+	}
+	//substr := "/bin/zsh"
+	substr := "/etc/cz-ha/keepalived.conf"
+	for _, line := range strings.Split(string(output), "\n") {
+		if strings.Contains(line,substr) {
+			return true
+		}
+	}
+	return false
+}
+
+func GetHaproxy() bool {
+	cmd := exec.Command("ps", "-ef")
+	output, err := cmd.Output()
+	if err != nil {
+		log.Println("Error executing command:", err)
+		return false
+	}
+	//substr := "/bin/zsh"
+	substr := "/etc/haproxy/haproxy.cfg"
+	for _, line := range strings.Split(string(output), "\n") {
+		if strings.Contains(line,substr) {
+			return true
+		}
+	}
+	return false
+}
+
+
+
 
 
 

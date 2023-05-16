@@ -25,6 +25,31 @@ spec:
       sourceLabels:
       - __meta_kubernetes_pod_host_ip
       targetLabel: host_ip
+
+    - action: replace
+      separator: ;
+      regex: (.*)
+      replacement: $1
+      sourceLabels:
+        - __meta_kubernetes_pod_iface_name
+      targetLabel: iface_name
+
+    - action: replace
+      separator: ;
+      regex: (.*)
+      replacement: $1
+      sourceLabels:
+        - __meta_kubernetes_pod_iface_ip
+      targetLabel: iface_ip
+
+    - action: replace
+      separator: ;
+      regex: (.*)
+      replacement: $1
+      sourceLabels:
+        - __meta_kubernetes_pod_container
+      targetLabel: container
+      
     scheme: http
     scrapeTimeout: 10s
   jobLabel: syst-exporter

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
-
 	dclient "github.com/docker/docker/client"
 )
 
@@ -18,8 +17,8 @@ var (
 	dockerClientOnce sync.Once
 )
 
-const DockerEndpoint = "unix:///var/run/docker.sock"
-const DockerMac = "unix:///Users/slc/.docker/run/docker.sock"
+const dockerEndpoint = "unix:///var/run/docker.sock"
+//const dockerMac = "unix:///Users/slc/.docker/run/docker.sock"
 
 var dockerTimeout = 10 * time.Second
 
@@ -33,22 +32,21 @@ func Client() (*dclient.Client, error) {
 	dockerClientOnce.Do(func() {
 		var client *http.Client
 		dockerClient, dockerClientErr = dclient.NewClientWithOpts(
-			//dclient.WithHost(DockerEndpoint),
-			dclient.WithHost(DockerMac),
+			dclient.WithHost(dockerEndpoint),
+			//dclient.WithHost(dockerMac),
 			dclient.WithHTTPClient(client),
 			dclient.WithAPIVersionNegotiation())
 	})
 	return dockerClient, dockerClientErr
 }
-
-func GetDockerInfo() types.Info {
-	c, _ := Client()
-	info, err := c.Info(defaultContext())
-	if err != nil {
-		log.Fatal(err)
-	}
-	return info
-}
+//func GetDockerInfo() types.Info {
+//	c, _ := Client()
+//	info, err := c.Info(defaultContext())
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//	return info
+//}
 
 func GetContainerInspect(ID string) types.ContainerJSON {
 	c, _ := Client()
