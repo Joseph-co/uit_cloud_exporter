@@ -56,13 +56,13 @@ func NewExporter() *Exporter {
 	//config, err := clientcmd.BuildConfigFromFlags("https://172.18.70.241:6443", clientcmd.RecommendedHomeFile)
 	config, err := clientcmd.BuildConfigFromFlags(strc, *kubeconfig)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("error when geting k8sconfig from configfile:%v\n",err)
 	}
 	//	create client
 	clientset, err := kubernetes.NewForConfig(config)
 	//config, err := clientcmd.BuildConfigFromFlags(master, "config")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("error when geting k8s clientset:%v\n",err)
 	}
 	return &Exporter{
 		clientSet: clientset,

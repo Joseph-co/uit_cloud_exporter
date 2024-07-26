@@ -18,7 +18,7 @@ var (
 )
 
 const dockerEndpoint = "unix:///var/run/docker.sock"
-//const dockerMac = "unix:///Users/slc/.docker/run/docker.sock"
+//const dockerEndpoint = "unix:///Users/slc/.docker/run/docker.sock"
 
 var dockerTimeout = 10 * time.Second
 
@@ -53,7 +53,7 @@ func GetContainerInspect(ID string) types.ContainerJSON {
 	info, err := c.ContainerInspect(defaultContext(), ID)
 	//info, err := c.ContainerInspect(defaultContext(), "9594a9eb913f")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("something is wrong when geting containerinspect: %v\n",err)
 	}
 	return info
 }
@@ -65,7 +65,7 @@ func GetContainerIDs()[]string {
 	}
 	containers, err := c.ContainerList(defaultContext(), options)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("error when geting containerList :%v\n",err)
 	}
 	containerIDs := make([]string, 0, len(containers))
 	for _,container := range containers {

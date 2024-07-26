@@ -15,7 +15,7 @@ import (
 func GetDeployStatus(clientset *kubernetes.Clientset)bool{
 	list, err := clientset.AppsV1().Deployments("monitoring").List(metav1.ListOptions{})
 	if err != nil{
-		log.Fatal(err)
+		log.Fatalf("getting  information of k8s deployments is wrong: %v\n",err)
 	}
 	for _, l := range list.Items {
 		if l.Name == "kube-state-metrics" && l.Status.AvailableReplicas >= 1 {
@@ -41,7 +41,7 @@ func GetK8sConf()(strc string, kubeconfig *string){
 		// Read the file contents
 		content, err := ioutil.ReadFile(filePath)
 		if err != nil {
-			log.Fatalf("Error reading file: %v\n", err)
+			log.Fatalf("Error reading k8scluster config file: %v\n", err)
 		}
 
 		// Convert file content to string
@@ -55,7 +55,7 @@ func GetK8sConf()(strc string, kubeconfig *string){
 			strc = str
 		}
 	} else {
-		log.Fatal("File does not exist.")
+		log.Fatal("k8s config file does not exist.")
 	}
 	return strc,kubeconfig
 }

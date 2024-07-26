@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: uit-cloud-exporter
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: uit-cloud-exporter
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: uit-cloud-exporter
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 100%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: uit-cloud-exporter
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "9101"
+    spec:
+      securityContext:
+        runAsUser: 0
+      hostPID: true
+      hostNetwork: true
+      nodeSelector:
+        kubernetes.io/os: linux
+      tolerations:
+        - effect: NoSchedule
+          operator: Exists
+      containers:
+        - name: uit-cloud-exporter
+          image: uit-cloud-exporter:v0.1.0
+          securityContext:
+            privileged: true
+          ports:
+            - name: metrics
+              containerPort: 9101
+              hostPort: 9101
+          volumeMounts:
+            - name: proc
+              mountPath: /host/proc
+            - name: systemd
+              mountPath: /var/run
+            - name: kubeconfig
+              mountPath: /root/.kube
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+      volumes:
+        - name: proc
+          hostPath:
+            path: /proc
+        - name: systemd
+          hostPath:
+            path: /var/run
+        - name: kubeconfig
+          hostPath:
+            path: /root/.kube
